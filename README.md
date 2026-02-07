@@ -1,36 +1,123 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# HomeWise AI
 
-## Getting Started
+**AI-Native Budget Planner for Busy Families**  
+Scan receipts in seconds, auto-categorize spend, and keep a shared home budget between Mom and Helper.
 
-First, run the development server:
+## Product Snapshot
+
+HomeWise AI is a mobile-first MVP designed for non-technical users.  
+The core idea is simple: **one giant Scan button, one AI extraction step, one Save action**.
+
+## Why This Product
+
+- Families need fast expense logging, not complex accounting screens.
+- Helpers and moms both spend; tracking by user is critical.
+- Google Sheets keeps the backend transparent and low-cost.
+
+## Key Features (MVP Lite)
+
+- One-tap **Scan Bill** flow (image upload, OCR, structured extraction)
+- AI extraction via **GPT-4o Vision**
+- Google Sheets as the source of truth (`Date`, `Amount`, `Category`, `Merchant`, `User`, `Notes`)
+- PIN-protected access for household privacy
+- Live dashboard with:
+  - **Total Spent This Month**
+  - **Last 5 Transactions**
+
+## Product Design Screenshots
+
+### 1) Home Screen (Mobile)
+
+![Home Screen](public/screenshots/home-mobile.png)
+
+### 2) PIN Lock Screen (Mobile)
+
+![PIN Gate](public/screenshots/pin-gate-mobile.png)
+
+## Tech Stack
+
+- **Framework:** Next.js 14 (App Router)
+- **UI:** Tailwind CSS, Shadcn-style local UI primitives, Lucide icons
+- **Data:** Google Sheets (`google-spreadsheet`)
+- **AI OCR:** OpenAI (`gpt-4o`)
+- **Validation:** Zod
+
+## Architecture (MVP)
+
+- `app/page.tsx` (server component)
+  - Loads monthly total + latest transactions from Google Sheets
+  - Renders scan/dashboard shell
+- `components/scan-bill-client.tsx` (client component)
+  - Handles image selection, Base64 conversion, OCR call, user selection, and save flow
+- `app/api/process-bill/route.ts`
+  - OCR extraction with strict JSON schema normalization
+- `app/api/save-transaction/route.ts`
+  - Appends normalized row to Google Sheets
+- `app/api/verify-pin/route.ts`
+  - PIN verification endpoint (timing-safe compare)
+- `lib/google-sheets.ts`
+  - Shared helper for connect/read/write to worksheet
+
+## Environment Variables
+
+Create `.env.local`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+OPENAI_API_KEY=sk-...
+GOOGLE_SHEET_ID=...
+GOOGLE_SHEET_TAB_NAME=Transactions
+GOOGLE_SERVICE_ACCOUNT_EMAIL=...@...iam.gserviceaccount.com
+GOOGLE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+APP_PIN=1234
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local Development
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm install
+pnpm dev
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+Then open [http://localhost:3000](http://localhost:3000).
 
-## Learn More
+## API Contracts
 
-To learn more about Next.js, take a look at the following resources:
+### `POST /api/process-bill`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Request:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+```json
+{ "imageBase64": "...", "mimeType": "image/jpeg" }
+```
 
-## Deploy on Vercel
+Response:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```json
+{ "amount": 12.5, "category": "Food", "merchant": "Starbucks", "date": "2026-02-07" }
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+### `POST /api/save-transaction`
+
+Request:
+
+```json
+{
+  "amount": 12.5,
+  "category": "Food",
+  "merchant": "Starbucks",
+  "date": "2026-02-07",
+  "user": "Mom",
+  "notes": "latte"
+}
+```
+
+Response:
+
+```json
+{ "ok": true }
+```
+
+## Status
+
+- MVP Lite v1 complete
+- Ready for preview deployment and user testing

@@ -20,10 +20,9 @@ function formatCurrency(amount: number) {
 }
 
 export default async function DashboardPage() {
-  const session = await getServerSession(authOptions);
-  if (isAuthEnabled() && !session?.user) {
-    redirect("/login");
-  }
+  const authRequired = isAuthEnabled();
+  const session = authRequired ? await getServerSession(authOptions) : null;
+  if (authRequired && !session?.user) redirect("/login");
 
   const [monthlyTransactions, recent] = await Promise.all([
     getMonthlyTransactions(),

@@ -18,8 +18,8 @@ const saveSchema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
     const authRequired = isAuthEnabled();
+    const session = authRequired ? await getServerSession(authOptions) : null;
     if (authRequired && !session?.user) {
       return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
     }

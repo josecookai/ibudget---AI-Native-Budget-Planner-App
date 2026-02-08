@@ -139,22 +139,30 @@ async function createWorksheet(): Promise<GoogleSpreadsheetWorksheet> {
     throw new Error(`Worksheet \"${tabName}\" not found in spreadsheet ${spreadsheetId}`);
   }
 
+  // Header values must be loaded before calling `addRow/getRows`.
+  // If the sheet is blank, `loadHeaderRow()` throws and `headerValues` getter also throws.
+  let existingHeaders: string[] = [];
   try {
     await worksheet.loadHeaderRow();
+    existingHeaders = worksheet.headerValues.filter(Boolean);
   } catch {
-    // If header row is empty, loadHeaderRow throws. We'll initialize below.
+    await worksheet.setHeaderRow([...SHEET_COLUMNS]);
+    await worksheet.loadHeaderRow();
+    existingHeaders = worksheet.headerValues.filter(Boolean);
   }
 
-  const existingHeaders = worksheet.headerValues.filter(Boolean);
   if (existingHeaders.length === 0) {
+    // Defensive: if the API didn't return headers, force-set them again.
     await worksheet.setHeaderRow([...SHEET_COLUMNS]);
-  } else {
-    const missing = SHEET_COLUMNS.filter((header) => !existingHeaders.includes(header));
-    if (missing.length > 0) {
-      throw new Error(
-        `Worksheet is missing required columns: ${missing.join(", ")}. Expected columns: ${SHEET_COLUMNS.join(", ")}`
-      );
-    }
+    await worksheet.loadHeaderRow();
+    existingHeaders = worksheet.headerValues.filter(Boolean);
+  }
+
+  const missing = SHEET_COLUMNS.filter((header) => !existingHeaders.includes(header));
+  if (missing.length > 0) {
+    throw new Error(
+      `Worksheet is missing required columns: ${missing.join(", ")}. Expected columns: ${SHEET_COLUMNS.join(", ")}`
+    );
   }
 
   return worksheet;

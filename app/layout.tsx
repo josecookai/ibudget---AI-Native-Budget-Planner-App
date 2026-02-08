@@ -3,11 +3,16 @@ import { Inter } from "next/font/google";
 
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], display: "swap" });
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
-  title: "HomeWise AI",
-  description: "A simple mobile-first AI expense tracker for families.",
+  title: "HomeWise AI – Your Family's Invisible Accountant",
+  description:
+    "Zero manual entry. Just snap a photo. Perfect for busy moms and helpers.",
 };
 
 export default function RootLayout({
@@ -16,8 +21,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={inter.className}>{children}</body>
+    <html lang="en" className="dark">
+      <body
+        className={`${inter.className} tracking-tight text-zinc-50 antialiased`}
+      >
+        {children}
+      </body>
     </html>
   );
 }

@@ -221,9 +221,13 @@ export function ScanBillClient({
         }),
       });
 
-      const data = (await response.json()) as { ok?: boolean; error?: string };
+      const data = (await response.json()) as {
+        ok?: boolean;
+        error?: string;
+        details?: string;
+      };
       if (!response.ok || !data.ok) {
-        throw new Error(data.error ?? "Unable to save transaction.");
+        throw new Error(data.details ?? data.error ?? "Unable to save transaction.");
       }
 
       setSuccessMessage("Saved to your expense dashboard.");

@@ -2,6 +2,7 @@
 
 import { Apple } from "lucide-react";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 export function HeroSection() {
   return (
@@ -35,13 +36,21 @@ export function HeroSection() {
             transition={{ duration: 0.5, delay: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="flex justify-center md:justify-start"
           >
-            <a
-              href="#"
-              className="group inline-flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/80 px-6 py-3.5 text-base font-medium text-zinc-50 shadow-[0_0_24px_-4px_rgba(139,92,246,0.35)] transition hover:border-violet-500/50 hover:bg-zinc-800/80 hover:shadow-[0_0_32px_-4px_rgba(139,92,246,0.45)] focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:ring-offset-2 focus:ring-offset-zinc-950"
-            >
-              <Apple className="h-5 w-5" aria-hidden />
-              Download on App Store
-            </a>
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Link
+                href="/scan"
+                className="inline-flex items-center justify-center rounded-xl bg-white px-6 py-3.5 text-base font-semibold text-zinc-950 shadow-[0_0_24px_-4px_rgba(139,92,246,0.25)] transition hover:bg-zinc-100 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:ring-offset-2 focus:ring-offset-zinc-950"
+              >
+                Open Scanner
+              </Link>
+              <a
+                href="#"
+                className="group inline-flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/80 px-6 py-3.5 text-base font-medium text-zinc-50 transition hover:border-violet-500/50 hover:bg-zinc-800/80 focus:outline-none focus:ring-2 focus:ring-violet-500/50 focus:ring-offset-2 focus:ring-offset-zinc-950"
+              >
+                <Apple className="h-5 w-5" aria-hidden />
+                Download on App Store
+              </a>
+            </div>
           </motion.div>
         </div>
 

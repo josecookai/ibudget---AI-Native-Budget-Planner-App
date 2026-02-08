@@ -1,6 +1,7 @@
 import { HeroSection } from "@/components/hero-section";
 import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
 import { Apple, PiggyBank, Receipt } from "lucide-react";
+import Link from "next/link";
 
 export default function LandingPage() {
   return (
@@ -94,6 +95,16 @@ export default function LandingPage() {
           © {new Date().getFullYear()} HomeWise AI. All rights reserved.
         </p>
       </footer>
+
+      <div className="fixed bottom-6 right-6">
+        <Link
+          href="/scan"
+          className="inline-flex items-center gap-2 rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-zinc-950 shadow-lg shadow-black/30 transition hover:-translate-y-0.5 hover:shadow-xl hover:shadow-black/40 focus:outline-none focus:ring-2 focus:ring-violet-400/60"
+        >
+          <Receipt className="h-4 w-4" />
+          Open Scanner
+        </Link>
+      </div>
     </main>
   );
 }

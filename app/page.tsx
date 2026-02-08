@@ -1,15 +1,23 @@
 import { HeroSection } from "@/components/hero-section";
+import { FeaturesSection } from "@/components/features-section";
+import { LogoWall } from "@/components/logo-wall";
+import { TestimonialsSection } from "@/components/testimonials-section";
+import { PressSection } from "@/components/press-section";
+import { SiteFooter } from "@/components/site-footer";
+import { SiteHeader } from "@/components/site-header";
 import { BentoCard, BentoGrid } from "@/components/ui/bento-grid";
-import { Apple, PiggyBank, Receipt } from "lucide-react";
+import { PiggyBank, Receipt } from "lucide-react";
 import Link from "next/link";
 
 export default function LandingPage() {
   return (
     <main className="min-h-screen bg-zinc-950">
+      <SiteHeader />
+
       <HeroSection />
 
       <section className="mx-auto max-w-6xl px-4 py-16 md:py-24">
-        <h2 className="sr-only">Features</h2>
+        <h2 className="sr-only">Highlights</h2>
         <BentoGrid>
           <BentoCard size="tall" delay={0}>
             <div className="flex h-full flex-col items-center justify-center gap-4">
@@ -70,31 +78,11 @@ export default function LandingPage() {
         </BentoGrid>
       </section>
 
-      <footer className="border-t border-zinc-800 bg-zinc-950/80">
-        <div className="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-12 md:flex-row md:justify-between">
-          <div className="flex flex-wrap justify-center gap-6 text-sm text-zinc-400">
-            <a href="#" className="transition hover:text-zinc-50">
-              Privacy
-            </a>
-            <a href="#" className="transition hover:text-zinc-50">
-              Terms
-            </a>
-            <a href="#" className="transition hover:text-zinc-50">
-              Support
-            </a>
-          </div>
-          <a
-            href="#"
-            className="inline-flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900/80 px-5 py-2.5 text-sm font-medium text-zinc-50 transition hover:border-violet-500/50 hover:bg-zinc-800/80"
-          >
-            <Apple className="h-4 w-4" />
-            Download on App Store
-          </a>
-        </div>
-        <p className="border-t border-zinc-800/80 py-4 text-center text-xs text-zinc-500">
-          © {new Date().getFullYear()} HomeWise AI. All rights reserved.
-        </p>
-      </footer>
+      <FeaturesSection />
+      <LogoWall />
+      <TestimonialsSection />
+      <PressSection />
+      <SiteFooter />
 
       <div className="fixed bottom-6 right-6">
         <Link

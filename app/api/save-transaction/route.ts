@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { getServerSession } from "next-auth";
 import { z } from "zod";
 
+import { isAuthEnabled } from "@/lib/auth-enabled";
+import { authOptions } from "@/lib/auth-options";
 import { appendTransaction } from "@/lib/google-sheets";
 import { CATEGORY_VALUES, USER_VALUES } from "@/lib/transaction-types";
 
@@ -15,6 +18,12 @@ const saveSchema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    const authRequired = isAuthEnabled();
+    if (authRequired && !session?.user) {
+      return NextResponse.json({ error: "Unauthorized." }, { status: 401 });
+    }
+
     const payload = saveSchema.parse(await request.json());
 
     await appendTransaction({
@@ -24,6 +33,9 @@ export async function POST(request: Request) {
       date: payload.date,
       user: payload.user,
       notes: payload.notes,
+      // @ts-expect-error augmented by authOptions callbacks
+      userId: session?.user?.id ?? "",
+      createdAt: new Date().toISOString(),
     });
 
     return NextResponse.json({ ok: true });

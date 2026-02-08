@@ -1,8 +1,8 @@
 "use client";
 
-import { Camera, Loader2, Lock, ReceiptText } from "lucide-react";
+import { Camera, Loader2, ReceiptText } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -31,10 +31,7 @@ interface ScanBillClientProps {
   initialMonthlyTotal: number;
   initialTransactions: TransactionRecord[];
   dashboardError: string | null;
-  pinEnabled: boolean;
 }
-
-const sessionKey = "homewise_ai_unlocked";
 
 function formatCurrency(amount: number): string {
   return new Intl.NumberFormat("en-US", {
@@ -91,15 +88,9 @@ export function ScanBillClient({
   initialMonthlyTotal,
   initialTransactions,
   dashboardError,
-  pinEnabled,
 }: ScanBillClientProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const [pin, setPin] = useState("");
-  const [pinError, setPinError] = useState<string | null>(null);
-  const [unlocking, setUnlocking] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(!pinEnabled);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [ocrResult, setOcrResult] = useState<OCRResult | null>(null);
@@ -109,17 +100,6 @@ export function ScanBillClient({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!pinEnabled) {
-      return;
-    }
-
-    const unlocked = sessionStorage.getItem(sessionKey) === "1";
-    if (unlocked) {
-      setIsUnlocked(true);
-    }
-  }, [pinEnabled]);
-
   const monthLabel = useMemo(
     () =>
       new Intl.DateTimeFormat("en-US", {
@@ -128,33 +108,6 @@ export function ScanBillClient({
       }).format(new Date()),
     []
   );
-
-  async function handleUnlock() {
-    setPinError(null);
-    setUnlocking(true);
-
-    try {
-      const response = await fetch("/api/verify-pin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pin }),
-      });
-
-      const data = (await response.json()) as { error?: string };
-      if (!response.ok) {
-        setPinError(data.error ?? "PIN verification failed.");
-        return;
-      }
-
-      sessionStorage.setItem(sessionKey, "1");
-      setIsUnlocked(true);
-      setPin("");
-    } catch {
-      setPinError("Unable to verify PIN right now.");
-    } finally {
-      setUnlocking(false);
-    }
-  }
 
   async function handleFileSelection(file: File) {
     setErrorMessage(null);
@@ -227,6 +180,9 @@ export function ScanBillClient({
         details?: string;
       };
       if (!response.ok || !data.ok) {
+        if (response.status === 401) {
+          throw new Error("Session expired. Please log in again.");
+        }
         throw new Error(data.details ?? data.error ?? "Unable to save transaction.");
       }
 
@@ -234,11 +190,14 @@ export function ScanBillClient({
       setOcrResult(null);
       setSelectedUser(null);
       setNotes("");
-      router.refresh();
+      router.push("/dashboard");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unable to save transaction.";
       setErrorMessage(message);
+      if (message.toLowerCase().includes("log in")) {
+        router.push("/login");
+      }
     } finally {
       setIsSaving(false);
     }
@@ -246,45 +205,6 @@ export function ScanBillClient({
 
   return (
     <>
-      {pinEnabled && !isUnlocked && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/50 px-4">
-          <Card className="w-full max-w-sm">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-zinc-900">
-                <Lock className="size-5" /> Enter PIN
-              </CardTitle>
-              <CardDescription>
-                HomeWise is protected. Please enter your family PIN.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <input
-                type="password"
-                inputMode="numeric"
-                value={pin}
-                onChange={(event) => setPin(event.target.value)}
-                placeholder="4-digit PIN"
-                className="h-11 w-full rounded-xl border border-zinc-300 px-3 text-base focus:outline-none focus:ring-2 focus:ring-zinc-400"
-              />
-              {pinError && <p className="text-sm text-red-600">{pinError}</p>}
-              <Button
-                className="w-full"
-                onClick={handleUnlock}
-                disabled={unlocking || !pin}
-              >
-                {unlocking ? (
-                  <>
-                    <Loader2 className="mr-2 size-4 animate-spin" /> Unlocking...
-                  </>
-                ) : (
-                  "Unlock"
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       <div className="space-y-6">
         <Card className="border-zinc-200">
           <CardHeader className="pb-4">

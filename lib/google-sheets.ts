@@ -1,10 +1,6 @@
 import "server-only";
 
-import { GoogleAuth } from "google-auth-library";
-import {
-  GoogleSpreadsheet,
-  type GoogleSpreadsheetWorksheet,
-} from "google-spreadsheet";
+import type { GoogleSpreadsheetWorksheet } from "google-spreadsheet";
 
 import {
   CATEGORY_VALUES,
@@ -13,6 +9,7 @@ import {
   type TransactionRecord,
   type TransactionUser,
 } from "@/lib/transaction-types";
+import { getOrCreateWorksheet } from "@/lib/sheets-client";
 
 const SHEET_COLUMNS = [
   "Date",
@@ -21,17 +18,11 @@ const SHEET_COLUMNS = [
   "Merchant",
   "User",
   "Notes",
+  "UserId",
+  "CreatedAt",
 ] as const;
 
 let worksheetPromise: Promise<GoogleSpreadsheetWorksheet> | null = null;
-
-function requireEnv(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) {
-    throw new Error(`Missing required env var: ${name}`);
-  }
-  return value;
-}
 
 function toISODate(value: Date): string {
   return value.toISOString().slice(0, 10);
@@ -114,63 +105,16 @@ function normalizeNotes(value: unknown): string {
   return String(value ?? "").trim();
 }
 
-async function createWorksheet(): Promise<GoogleSpreadsheetWorksheet> {
-  const spreadsheetId = requireEnv("GOOGLE_SHEET_ID");
-  const tabName = requireEnv("GOOGLE_SHEET_TAB_NAME");
-  const clientEmail = requireEnv("GOOGLE_SERVICE_ACCOUNT_EMAIL");
-  const privateKey = requireEnv("GOOGLE_PRIVATE_KEY").replace(/\\n/g, "\n");
-
-  const auth = new GoogleAuth({
-    credentials: {
-      client_email: clientEmail,
-      private_key: privateKey,
-    },
-    scopes: [
-      "https://www.googleapis.com/auth/spreadsheets",
-      "https://www.googleapis.com/auth/drive.readonly",
-    ],
-  });
-
-  const doc = new GoogleSpreadsheet(spreadsheetId, auth);
-  await doc.loadInfo();
-
-  const worksheet = doc.sheetsByTitle[tabName];
-  if (!worksheet) {
-    throw new Error(`Worksheet \"${tabName}\" not found in spreadsheet ${spreadsheetId}`);
-  }
-
-  // Header values must be loaded before calling `addRow/getRows`.
-  // If the sheet is blank, `loadHeaderRow()` throws and `headerValues` getter also throws.
-  let existingHeaders: string[] = [];
-  try {
-    await worksheet.loadHeaderRow();
-    existingHeaders = worksheet.headerValues.filter(Boolean);
-  } catch {
-    await worksheet.setHeaderRow([...SHEET_COLUMNS]);
-    await worksheet.loadHeaderRow();
-    existingHeaders = worksheet.headerValues.filter(Boolean);
-  }
-
-  if (existingHeaders.length === 0) {
-    // Defensive: if the API didn't return headers, force-set them again.
-    await worksheet.setHeaderRow([...SHEET_COLUMNS]);
-    await worksheet.loadHeaderRow();
-    existingHeaders = worksheet.headerValues.filter(Boolean);
-  }
-
-  const missing = SHEET_COLUMNS.filter((header) => !existingHeaders.includes(header));
-  if (missing.length > 0) {
-    throw new Error(
-      `Worksheet is missing required columns: ${missing.join(", ")}. Expected columns: ${SHEET_COLUMNS.join(", ")}`
-    );
-  }
-
-  return worksheet;
-}
-
 async function getWorksheet(): Promise<GoogleSpreadsheetWorksheet> {
   if (!worksheetPromise) {
-    worksheetPromise = createWorksheet().catch((error) => {
+    const title = (process.env.GOOGLE_SHEET_TAB_NAME || "").trim();
+    if (!title) {
+      throw new Error("Missing required env var: GOOGLE_SHEET_TAB_NAME");
+    }
+    worksheetPromise = getOrCreateWorksheet({
+      title,
+      requiredHeaders: [...SHEET_COLUMNS],
+    }).catch((error) => {
       worksheetPromise = null;
       throw error;
     });
@@ -197,7 +141,9 @@ function normalizeRow(row: Record<string, unknown>): TransactionRecord | null {
   };
 }
 
-export async function appendTransaction(input: TransactionInput): Promise<void> {
+export async function appendTransaction(
+  input: TransactionInput & { userId?: string; createdAt?: string }
+): Promise<void> {
   const worksheet = await getWorksheet();
 
   await worksheet.addRow({
@@ -207,6 +153,8 @@ export async function appendTransaction(input: TransactionInput): Promise<void> 
     Merchant: input.merchant.trim(),
     User: input.user,
     Notes: input.notes?.trim() ?? "",
+    UserId: input.userId ?? "",
+    CreatedAt: input.createdAt ?? new Date().toISOString(),
   });
 }
 
@@ -221,21 +169,26 @@ export async function getRecentTransactions(limit = 5): Promise<TransactionRecor
     .slice(0, limit);
 }
 
-export async function getMonthlyTotal(referenceDate = new Date()): Promise<number> {
+export async function getMonthlyTransactions(referenceDate = new Date()): Promise<TransactionRecord[]> {
   const worksheet = await getWorksheet();
   const rows = await worksheet.getRows<Record<string, unknown>>();
 
   const start = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), 1);
   const end = new Date(referenceDate.getFullYear(), referenceDate.getMonth() + 1, 1);
 
-  const total = rows
+  return rows
     .map((row) => normalizeRow(row.toObject()))
     .filter((row): row is TransactionRecord => row !== null)
     .filter((row) => {
       const date = new Date(`${row.date}T00:00:00`);
       return date >= start && date < end;
     })
-    .reduce((sum, row) => sum + row.amount, 0);
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export async function getMonthlyTotal(referenceDate = new Date()): Promise<number> {
+  const monthly = await getMonthlyTransactions(referenceDate);
+  const total = monthly.reduce((sum, row) => sum + row.amount, 0);
 
   return Number(total.toFixed(2));
 }

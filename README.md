@@ -17,7 +17,7 @@ The core idea is simple: **one giant Scan button, one AI extraction step, one Sa
 ## Key Features (MVP Lite)
 
 - One-tap **Scan Bill** flow (image upload, OCR, structured extraction)
-- AI extraction via **GPT-4o Vision**
+- AI extraction via **Google Gemini Vision**
 - Google Sheets as the source of truth (`Date`, `Amount`, `Category`, `Merchant`, `User`, `Notes`)
 - PIN-protected access for household privacy
 - Live dashboard with:
@@ -39,7 +39,7 @@ The core idea is simple: **one giant Scan button, one AI extraction step, one Sa
 - **Framework:** Next.js 14 (App Router)
 - **UI:** Tailwind CSS, Shadcn-style local UI primitives, Lucide icons
 - **Data:** Google Sheets (`google-spreadsheet`)
-- **AI OCR:** OpenAI (`gpt-4o`)
+- **AI OCR:** Google Gemini (`gemini-2.5-flash`)
 - **Validation:** Zod
 
 ## Architecture (MVP)
@@ -63,7 +63,8 @@ The core idea is simple: **one giant Scan button, one AI extraction step, one Sa
 Create `.env.local`:
 
 ```bash
-OPENAI_API_KEY=sk-...
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-2.5-flash
 GOOGLE_SHEET_ID=...
 GOOGLE_SHEET_TAB_NAME=Transactions
 GOOGLE_SERVICE_ACCOUNT_EMAIL=...@...iam.gserviceaccount.com
